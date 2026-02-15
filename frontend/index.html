@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <base href="/chat/">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperMind - 智能文献问答系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📄</text></svg>">
+    
+    <!-- Inter 字体 - 来自 app/ 设计系统 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Markdown渲染库 - 使用国内镜像 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/marked/11.1.1/marked.min.js"></script>
+    
+    <!-- MathJax用于数学公式渲染 - 使用国内镜像 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            },
+            startup: {
+                typeset: false
+            }
+        };
+    </script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    
+    <!-- 代码高亮 - 使用国内镜像 -->
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <span class="logo-icon">📄</span>
+                <span class="logo-text">PaperMind</span>
+            </div>
+            <div class="navbar-info">
+                <span class="status-indicator"></span>
+                <span class="status-text">后端服务已连接</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-container">
+        <!-- 左侧面板：公告栏和处理过程 -->
+        <aside class="sidebar-left">
+            <!-- 公告栏 -->
+            <div class="panel announcement-panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <span class="panel-icon">📢</span>
+                        公告栏
+                    </h3>
+                </div>
+                <div class="panel-content">
+                    <div class="announcement-container" id="announcement-container">
+                        <div class="announcement-item" data-id="product-intro">
+                            <div class="announcement-title">《产品简介》</div>
+                        </div>
+                        <div class="announcement-item" data-id="contact-info">
+                            <div class="announcement-title">《作者联系方式》</div>
+                        </div>
+                        <div class="announcement-item" data-id="version-update">
+                            <div class="announcement-title">《版本更新公告》</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 处理过程 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <span class="panel-icon">⚡</span>
+                        处理过程
+                    </h3>
+                    <button class="btn-text btn-text-small" id="clear-process-btn">
+                        清空
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <div class="process-container" id="process-container">
+                        <div class="process-message info-message">
+                            <div class="process-timestamp">10:00:00</div>
+                            <div class="process-text">系统已就绪，等待用户输入...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="loading-indicator" id="loading-animation" style="display: none;">
+                        <div class="spinner"></div>
+                        <span>正在处理中...</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 中间：对话区域 -->
+        <main class="chat-area">
+            <div class="panel chat-panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <span class="panel-icon">💬</span>
+                        对话窗口
+                    </h3>
+                    <div class="chat-stats" id="chat-stats">对话记录：0 轮</div>
+                </div>
+                <div class="panel-content">
+                    <div class="chat-container" id="chat-container">
+                        <div class="chat-content" id="chat-content">
+                            <div class="message message-assistant">
+                                <div class="message-avatar">
+                                    <img src="http://localhost:8000/assets/photos/assistant.jpg" alt="助手头像" class="avatar-image">
+                                </div>
+                                <div class="message-body">
+                                    <div class="message-sender">PaperMind</div>
+                                    <div class="message-content markdown-content">
+                                        <p>您好，我是您的智能文献助手，可以帮助您检索、分析和解答学术文献相关问题。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <form id="chat-form" class="chat-form">
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <textarea 
+                                    id="chat-input" 
+                                    placeholder="输入您的问题... (Enter发送，Ctrl+Enter换行)"
+                                    rows="3"
+                                ></textarea>
+                            </div>
+                            <div class="button-row">
+                                <button type="submit" class="btn btn-primary">
+                                    <span class="btn-icon">📤</span>
+                                    发送
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="clear-btn">
+                                    <span class="btn-icon">🗑️</span>
+                                    清空对话
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <!-- 右侧面板：PDF预览和模式选择 -->
+        <aside class="sidebar-right">
+            <!-- API-KEY输入 -->
+            <div class="panel api-key-panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <span class="panel-icon">🔑</span>
+                        API-KEY设置
+                    </h3>
+                    <button class="btn-text btn-text-small" id="clear-api-key-status-btn">
+                        清除状态
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <div class="api-key-input-group">
+                        <input 
+                            type="password" 
+                            id="api-key-input" 
+                            placeholder="输入您的千问API-KEY"
+                            class="api-key-input"
+                        >
+                        <button type="button" class="btn btn-primary api-key-btn" id="api-key-submit">
+                            <span class="btn-icon">✅</span>
+                            设置
+                        </button>
+                    </div>
+                    <div id="api-key-status" class="api-key-status"></div>
+                </div>
+            </div>
+
+            <!-- 模式选择 -->
+            <div class="panel mode-panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <span class="panel-icon">🎯</span>
+                        问答模式
+                    </h3>
+                </div>
+                <div class="panel-content">
+                    <div class="mode-selector">
+                        <select id="mode-select" class="mode-select">
+                            <option value="existing">💾 现有知识库</option>
+                            <option value="upload">📤 上传文档</option>
+                            <option value="research">🔍 论文检索</option>
+                        </select>
+                        <!-- 隐藏原有的radio选项 -->
+                        <label class="mode-option" data-mode="existing">
+                            <input type="radio" name="mode" value="existing" checked>
+                        </label>
+                        <label class="mode-option" data-mode="upload">
+                            <input type="radio" name="mode" value="upload">
+                        </label>
+                        <label class="mode-option" data-mode="research">
+                            <input type="radio" name="mode" value="research">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PDF上传 - 简化版单行按钮 -->
+            <div class="upload-simple-panel" id="upload-panel" style="display: none;">
+                <input type="file" id="pdf-upload" accept=".pdf" style="display: none;">
+                <div class="upload-simple-btn" id="upload-dropzone">
+                    <span class="upload-simple-icon">📄</span>
+                    <span class="upload-simple-text">上传文档</span>
+                </div>
+                <div id="upload-status" class="upload-status"></div>
+            </div>
+
+            <!-- PDF预览 -->
+            <div class="panel pdf-panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <span class="panel-icon">📖</span>
+                        文档预览
+                    </h3>
+                </div>
+                <div class="panel-content">
+                    <div class="pdf-container" id="pdf-container">
+                        <div class="pdf-placeholder">
+                            <div class="pdf-placeholder-icon">📄</div>
+                            <p class="pdf-placeholder-text">选择模式后，这里将显示对应的PDF文档</p>
+                        </div>
+                    </div>
+                    <div id="pdf-info" class="pdf-info"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- 公告弹窗 -->
+    <div class="announcement-modal" id="announcement-modal">
+        <div class="announcement-modal-overlay" id="announcement-modal-overlay"></div>
+        <div class="announcement-modal-content">
+            <div class="announcement-modal-header">
+                <h3 class="announcement-modal-title" id="announcement-modal-title"></h3>
+                <button class="announcement-modal-close" id="announcement-modal-close">&times;</button>
+            </div>
+            <div class="announcement-modal-body">
+                <div class="announcement-modal-content-text" id="announcement-modal-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
